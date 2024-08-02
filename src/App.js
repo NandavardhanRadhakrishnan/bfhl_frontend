@@ -1,12 +1,16 @@
 import React, { useState } from "react";
 import { Transition } from "@headlessui/react";
-import { ExclamationTriangleIcon } from "@heroicons/react/20/solid";
+import { XMarkIcon, ChevronDownIcon } from "@heroicons/react/20/solid";
 
 const App = () => {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('{\n"data":[]\n}');
   const [response, setResponse] = useState(null);
   const [error, setError] = useState("");
-  const [selectedOptions, setSelectedOptions] = useState([]);
+  const [selectedOptions, setSelectedOptions] = useState([
+    "Numbers",
+    "Highest Alphabet",
+  ]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,17 +29,17 @@ const App = () => {
       });
 
       if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(
-          `Failed to fetch: ${res.status} ${res.statusText}. ${errorText}`
-        );
+        throw new Error("Failed to fetch");
       }
 
       const data = await res.json();
       setResponse(data);
     } catch (err) {
-      console.error("Error details:", err);
-      setError(err.message);
+      setError(
+        err.message === "Failed to fetch"
+          ? "Error communicating with the server"
+          : "Invalid JSON input"
+      );
     }
   };
 
@@ -52,38 +56,88 @@ const App = () => {
 
     return (
       <div className="mt-4">
-        <h2 className="text-xl font-bold mb-2">Response:</h2>
-        {selectedOptions.includes("Alphabets") && (
-          <p>Alphabets: {response.alphabets.join(", ")}</p>
-        )}
+        <h2 className="text-lg font-semibold mb-2">Filtered Response</h2>
         {selectedOptions.includes("Numbers") && (
-          <p>Numbers: {response.numbers.join(", ")}</p>
+          <p>Numbers: {response.numbers.join(",")}</p>
         )}
-        {selectedOptions.includes("Highest alphabet") && (
-          <p>Highest alphabet: {response.highest_alphabet.join(", ")}</p>
+        {selectedOptions.includes("Highest Alphabet") && (
+          <p>Highest Alphabet: {response.highest_alphabet.join("")}</p>
+        )}
+        {selectedOptions.includes("Alphabets") && (
+          <p>Alphabets: {response.alphabets.join(",")}</p>
         )}
       </div>
     );
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">ABCD123</h1>
-      <form onSubmit={handleSubmit} className="mb-4">
+    <div className="container mx-auto p-4 max-w-md">
+      <h1 className="text-2xl font-bold mb-4">BFHL Demo</h1>
+      <div className="mb-4">
+        <label
+          htmlFor="api-input"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
+          API Input
+        </label>
         <textarea
+          id="api-input"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Enter JSON input"
-          className="w-full p-2 border rounded"
-          rows="4"
+          className="w-full p-2 border rounded-md"
+          rows="3"
         />
-        <button
-          type="submit"
-          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Submit
-        </button>
-      </form>
+      </div>
+      <button
+        onClick={handleSubmit}
+        className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300"
+      >
+        Submit
+      </button>
+      {response && (
+        <div className="mt-4 relative">
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="w-full bg-gray-100 text-left py-2 px-4 rounded-md flex justify-between items-center"
+          >
+            <span>Multi Filter</span>
+            <ChevronDownIcon className="h-5 w-5" />
+          </button>
+          {isDropdownOpen && (
+            <div className="absolute z-10 mt-1 w-full bg-white border rounded-md shadow-lg">
+              {["Numbers", "Highest Alphabet", "Alphabets"].map((option) => (
+                <label
+                  key={option}
+                  className="flex items-center p-2 hover:bg-gray-100"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedOptions.includes(option)}
+                    onChange={() => handleOptionChange(option)}
+                    className="mr-2"
+                  />
+                  {option}
+                </label>
+              ))}
+            </div>
+          )}
+          <div className="mt-2 flex flex-wrap">
+            {selectedOptions.map((option) => (
+              <span
+                key={option}
+                className="bg-gray-200 text-sm rounded-full px-3 py-1 m-1 flex items-center"
+              >
+                {option}
+                <XMarkIcon
+                  className="h-4 w-4 ml-1 cursor-pointer"
+                  onClick={() => handleOptionChange(option)}
+                />
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {renderResponse()}
       <Transition
         show={!!error}
         enter="transition-opacity duration-75"
@@ -93,40 +147,14 @@ const App = () => {
         leaveFrom="opacity-100"
         leaveTo="opacity-0"
       >
-        <div className="rounded-md bg-yellow-50 p-4 mb-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <ExclamationTriangleIcon
-                className="h-5 w-5 text-yellow-400"
-                aria-hidden="true"
-              />
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">Error</h3>
-              <div className="mt-2 text-sm text-yellow-700">
-                <p>{error}</p>
-              </div>
-            </div>
-          </div>
+        <div
+          className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+          role="alert"
+        >
+          <strong className="font-bold">Error!</strong>
+          <span className="block sm:inline"> {error}</span>
         </div>
       </Transition>
-      {response && (
-        <div className="mb-4">
-          <h2 className="text-xl font-bold mb-2">Select options to display:</h2>
-          {["Alphabets", "Numbers", "Highest alphabet"].map((option) => (
-            <label key={option} className="flex items-center mb-2">
-              <input
-                type="checkbox"
-                checked={selectedOptions.includes(option)}
-                onChange={() => handleOptionChange(option)}
-                className="mr-2"
-              />
-              {option}
-            </label>
-          ))}
-        </div>
-      )}
-      {renderResponse()}
     </div>
   );
 };
